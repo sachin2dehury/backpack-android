@@ -18,13 +18,7 @@
 
 package net.skyscanner.backpack.compose.textfield.internal
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,7 +26,6 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.width
@@ -47,10 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,10 +55,6 @@ import net.skyscanner.backpack.compose.textfield.BpkClearAction
 import net.skyscanner.backpack.compose.theme.BpkTheme
 import net.skyscanner.backpack.compose.tokens.BpkBorderRadius
 import net.skyscanner.backpack.compose.tokens.BpkSpacing
-import net.skyscanner.backpack.compose.tokens.CloseCircle
-import net.skyscanner.backpack.compose.tokens.ExclamationCircle
-import net.skyscanner.backpack.compose.tokens.TickCircle
-import net.skyscanner.backpack.compose.utils.clickableWithRipple
 import net.skyscanner.backpack.compose.utils.hideContentIf
 
 @Composable
@@ -86,7 +72,6 @@ internal fun BpkTextFieldImpl(
     minLines: Int = 1,
     maxLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    isFocused: Boolean? = null,
     trailingIcon: BpkIcon? = null,
     clearAction: BpkClearAction? = null,
     type: BpkTextFieldType = BpkTextFieldType.Default,
@@ -114,7 +99,6 @@ internal fun BpkTextFieldImpl(
         minLines = minLines,
         maxLines = maxLines,
         interactionSource = interactionSource,
-        isFocused = isFocused,
         trailingIcon = trailingIcon,
         clearAction = clearAction,
         type = type,
@@ -136,15 +120,15 @@ internal fun BpkTextFieldImpl(
     minLines: Int = 1,
     maxLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    isFocused: Boolean? = null,
     trailingIcon: BpkIcon? = null,
     clearAction: BpkClearAction? = null,
     type: BpkTextFieldType = BpkTextFieldType.Default,
 ) {
+    val isFocused = interactionSource.collectIsFocusedAsState().value
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        enabled = status != BpkFieldStatus.Disabled && !(type == BpkTextFieldType.Search && readOnly),
+        enabled = status != BpkFieldStatus.Disabled,
         readOnly = readOnly,
         textStyle = BpkTheme.typography.bodyDefault.copy(
             color = animateColorAsState(
@@ -171,10 +155,10 @@ internal fun BpkTextFieldImpl(
                 status = status,
                 prefix = prefix,
                 maxLines = maxLines,
-                isFocused = isFocused ?: interactionSource.collectIsFocusedAsState().value,
+                isFocused = isFocused,
                 trailingIcon = trailingIcon,
                 textFieldContent = it,
-                clearAction = if (readOnly && prefix == null) null else clearAction, // Remove clearAction if readOnly enabled.
+                clearAction = if (readOnly && prefix == null) null else clearAction,
                 type = type,
             )
         },
@@ -195,137 +179,69 @@ private fun TextFieldBox(
     type: BpkTextFieldType = BpkTextFieldType.Default,
     textFieldContent: @Composable () -> Unit,
 ) {
-    val textFieldBoxTintColor by animateColorAsState(
-        when (status) {
-            is BpkFieldStatus.Disabled -> BpkTheme.colors.textDisabled
-            else -> BpkTheme.colors.textSecondary
-        },
-    )
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    val tintColor = fieldTintColor(status)
+    val shape = textFieldShape(type)
+    val borderColor = fieldBorderColor(status = status, isFocused = isFocused)
+
+    Box(
         modifier = modifier
             .width(IntrinsicSize.Max)
-            .requiredHeightIn(min = BpkSpacing.Xxl + BpkSpacing.Md)
-            .border(
-                width = 1.dp, shape = textFieldShape(type = type),
-                color = animateColorAsState(
-                    when {
-                        status is BpkFieldStatus.Disabled -> BpkTheme.colors.surfaceHighlight
-                        status is BpkFieldStatus.Error -> BpkTheme.colors.textError
-                        isFocused -> BpkTheme.colors.coreAccent
-                        else -> BpkTheme.colors.line
-                    },
-                ).value,
-            )
-            .background(BpkTheme.colors.surfaceDefault, textFieldShape(type = type))
-            .padding(horizontal = BpkSpacing.Md),
+            .requiredHeightIn(min = BpkFieldMinHeight)
+            .background(BpkTheme.colors.surfaceDefault, shape)
+            .border(width = 1.dp, shape = shape, color = borderColor),
+        contentAlignment = Alignment.Center,
     ) {
-
-        when (prefix) {
-            is Prefix.Text ->
-                BpkText(
-                    text = prefix.prefixText,
-                    modifier = Modifier.padding(start = BpkSpacing.Sm),
-                    color = BpkTheme.colors.textSecondary,
-                )
-
-            is Prefix.Icon ->
-                BpkIcon(
-                    icon = prefix.icon,
-                    contentDescription = null,
-                    size = BpkIconSize.Large,
-                    modifier = Modifier.padding(start = BpkSpacing.Sm),
-                    tint = textFieldBoxTintColor,
-                )
-
-            else -> {}
-        }
-
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .weight(1f)
-                .padding(BpkSpacing.Md),
+                .padding(horizontal = BpkSpacing.Md),
         ) {
 
-            BpkText(
-                text = placeholder ?: "",
-                color = textFieldBoxTintColor,
-                maxLines = maxLines,
-                modifier = Modifier.hideContentIf(value.text.isNotEmpty()),
-                style = BpkTheme.typography.bodyDefault,
-                overflow = TextOverflow.Ellipsis,
-            )
+            when (prefix) {
+                is Prefix.Text ->
+                    BpkText(
+                        text = prefix.prefixText,
+                        modifier = Modifier.padding(start = BpkSpacing.Sm),
+                        color = tintColor,
+                    )
 
-            textFieldContent()
-        }
+                is Prefix.Icon ->
+                    BpkIcon(
+                        icon = prefix.icon,
+                        contentDescription = null,
+                        size = BpkIconSize.Large,
+                        modifier = Modifier.padding(start = BpkSpacing.Sm),
+                        tint = tintColor,
+                    )
 
-        TrailingIcon(trailingIcon, status, clearAction, value, type)
-    }
-}
+                else -> {}
+            }
 
-@Composable
-private fun RowScope.TrailingIcon(
-    trailingIcon: BpkIcon?,
-    status: BpkFieldStatus,
-    clearAction: BpkClearAction?,
-    value: TextFieldValue,
-    type: BpkTextFieldType,
-) {
-    var lastIcon by remember { mutableStateOf<Icon?>(null) }
-    val currentIcon = if (trailingIcon != null) {
-        Icon(
-            icon = trailingIcon,
-            contentDescription = null,
-            color = animateColorAsState(
-                when (status) {
-                    is BpkFieldStatus.Disabled -> BpkTheme.colors.textDisabled
-                    else -> BpkTheme.colors.textPrimary
-                },
-                label = "Trailing icon color",
-            ).value,
-        )
-    } else {
-        when {
-            status is BpkFieldStatus.Validated -> Icon(
-                icon = BpkIcon.TickCircle,
-                color = BpkTheme.colors.statusSuccessSpot,
-            )
-
-            status is BpkFieldStatus.Error -> Icon(
-                icon = BpkIcon.ExclamationCircle,
-                color = BpkTheme.colors.statusDangerSpot,
-            )
-
-            status is BpkFieldStatus.Default && clearAction != null && value.text.isNotEmpty() -> Icon(
-                icon = BpkIcon.CloseCircle,
-                contentDescription = clearAction.contentDescription,
-                color = BpkTheme.colors.textSecondary,
+            Box(
                 modifier = Modifier
-                    .clickableWithRipple(bounded = false, role = Role.Button) {
-                        clearAction.onClick()
-                    }
-                    .testTag("textFieldClearButton"),
-            )
+                    .weight(1f)
+                    .padding(BpkSpacing.Md),
+            ) {
 
-            else -> null
-        }
-    }
-    if (currentIcon != null) {
-        lastIcon = currentIcon
-    }
-    AnimatedVisibility(
-        visible = currentIcon != null,
-        enter = fadeIn() + scaleIn(),
-        exit = scaleOut() + fadeOut(),
-    ) {
-        Crossfade(lastIcon!!.icon, label = "textFieldTrailingIcon") {
-            val icon = lastIcon!!
-            BpkIcon(
-                icon = it,
-                contentDescription = icon.contentDescription,
-                size = if (type == BpkTextFieldType.Search) BpkIconSize.Large else BpkIconSize.Small,
-                tint = icon.color,
-                modifier = icon.modifier.padding(if (type == BpkTextFieldType.Search) BpkSpacing.Sm else 0.dp),
+                BpkText(
+                    text = placeholder ?: "",
+                    color = tintColor,
+                    maxLines = maxLines,
+                    modifier = Modifier.hideContentIf(value.text.isNotEmpty()),
+                    style = BpkTheme.typography.bodyDefault,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                textFieldContent()
+            }
+
+            BpkFieldTrailingIcon(
+                trailingIcon = trailingIcon,
+                status = status,
+                clearAction = clearAction,
+                hasValue = value.text.isNotEmpty(),
+                iconSize = if (type == BpkTextFieldType.Search) BpkIconSize.Large else BpkIconSize.Small,
+                iconPadding = if (type == BpkTextFieldType.Search) BpkSpacing.Sm else 0.dp,
             )
         }
     }
@@ -334,17 +250,10 @@ private fun RowScope.TrailingIcon(
 internal enum class BpkTextFieldType {
     Default,
     Search,
-    Select,
 }
 
 @Composable
-private fun textFieldShape(
-    type: BpkTextFieldType,
-) = RoundedCornerShape(if (type == BpkTextFieldType.Search || type == BpkTextFieldType.Select) BpkBorderRadius.Md else BpkBorderRadius.Sm)
-
-private data class Icon(
-    val icon: BpkIcon,
-    val color: Color,
-    val contentDescription: String? = null,
-    val modifier: Modifier = Modifier,
-)
+private fun textFieldShape(type: BpkTextFieldType): RoundedCornerShape {
+    val radius = if (type == BpkTextFieldType.Search) BpkBorderRadius.Md else BpkBorderRadius.Sm
+    return RoundedCornerShape(radius)
+}

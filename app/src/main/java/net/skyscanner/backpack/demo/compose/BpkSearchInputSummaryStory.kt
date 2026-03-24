@@ -22,8 +22,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -54,8 +54,8 @@ import net.skyscanner.backpack.meta.StoryKind
 fun SearchInputSummaryExamples(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .systemBarsPadding()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(BpkSpacing.Base),
     ) {
         DefaultExample()
@@ -229,9 +229,7 @@ internal fun SearchInputSummaryStory(
             inputText = state,
             inputHint = inputHint,
             prefix = prefix,
-            onInputChanged = {
-                state = it
-            },
+            onInputChanged = { state = it },
             clearAction = BpkClearAction(stringResource(id = R.string.text_field_clear_action_description)) {
                 state = ""
             },
