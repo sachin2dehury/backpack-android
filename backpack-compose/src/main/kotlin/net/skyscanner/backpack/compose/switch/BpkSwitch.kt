@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
-import net.skyscanner.backpack.compose.switch.internal.BpkSwitchImpl
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,12 +36,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import net.skyscanner.backpack.compose.switch.internal.BpkSwitchContent
+import net.skyscanner.backpack.compose.theme.BpkTheme
+import net.skyscanner.backpack.compose.switch.internal.BpkSwitchImpl
 import net.skyscanner.backpack.compose.text.BpkText
 import net.skyscanner.backpack.compose.tokens.BpkSpacing
-import net.skyscanner.backpack.compose.utils.BpkToggleableContent
 import net.skyscanner.backpack.compose.utils.applyIf
+
+enum class BpkSwitchStyle {
+    Default,
+    OnContrast,
+}
 
 @Composable
 fun BpkSwitch(
@@ -51,8 +58,10 @@ fun BpkSwitch(
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    style: BpkSwitchStyle = BpkSwitchStyle.Default,
     shouldTruncate: Boolean = true,
     switchAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    textStyle: TextStyle? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
     BpkSwitch(
@@ -60,10 +69,15 @@ fun BpkSwitch(
         onCheckedChange = onCheckedChange,
         modifier = modifier,
         enabled = enabled,
+        style = style,
         switchAlignment = switchAlignment,
+        textStyle = textStyle,
         interactionSource = interactionSource,
         content = {
-            TextWithSpacer(buildAnnotatedString { append(text) }, shouldTruncate)
+            TextWithSpacer(
+                annotatedString = buildAnnotatedString { append(text) },
+                shouldTruncate = shouldTruncate,
+            )
         },
     )
 }
@@ -75,8 +89,10 @@ fun BpkSwitch(
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    style: BpkSwitchStyle = BpkSwitchStyle.Default,
     shouldTruncate: Boolean = true,
     switchAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    textStyle: TextStyle? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
     BpkSwitch(
@@ -84,10 +100,15 @@ fun BpkSwitch(
         onCheckedChange = onCheckedChange,
         modifier = modifier,
         enabled = enabled,
+        style = style,
         switchAlignment = switchAlignment,
+        textStyle = textStyle,
         interactionSource = interactionSource,
         content = {
-            TextWithSpacer(text, shouldTruncate)
+            TextWithSpacer(
+                annotatedString = text,
+                shouldTruncate = shouldTruncate,
+            )
         },
     )
 }
@@ -98,7 +119,9 @@ fun BpkSwitch(
     onCheckedChange: ((Boolean) -> Unit)?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    style: BpkSwitchStyle = BpkSwitchStyle.Default,
     switchAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    textStyle: TextStyle? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable RowScope.(Boolean) -> Unit,
 ) {
@@ -127,8 +150,10 @@ fun BpkSwitch(
             },
     ) {
 
-        BpkToggleableContent(
+        BpkSwitchContent(
             enabled = enabled,
+            onContrast = style == BpkSwitchStyle.OnContrast,
+            textStyle = textStyle ?: BpkTheme.typography.footnote,
             content = { content(checked) },
         )
 
@@ -138,15 +163,19 @@ fun BpkSwitch(
             onCheckedChange = onCheckedChange,
             enabled = enabled,
             interactionSource = interactionSource,
+            style = style,
         )
     }
 }
 
 @Composable
-private fun RowScope.TextWithSpacer(annotatedString: AnnotatedString, shouldTruncate: Boolean) {
+private fun RowScope.TextWithSpacer(
+    annotatedString: AnnotatedString,
+    shouldTruncate: Boolean,
+) {
     takeIf { annotatedString.isNotEmpty() }?.let {
         BpkText(
-            modifier = Modifier.Companion.weight(1f),
+            modifier = Modifier.weight(1f),
             text = annotatedString,
             maxLines = if (shouldTruncate) 1 else Int.MAX_VALUE,
             overflow = TextOverflow.Ellipsis,
